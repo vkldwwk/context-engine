@@ -172,7 +172,7 @@ def name_of_step(context:Context):
         
 ## Flowsteps:
 a flow step must contain a member flow with one of the following flows.
-if, while, do while, for each, try. A copy of flow step locals are available for all sub (step and flow steps). flow steps can also contain a list of expressions these are executed before flow logic and do not have access to flow control variables 
+`if, while, do while, for each, try, block`. A copy of flow step locals are available for all sub (step and flow steps). flow steps can also contain a list of expressions these are executed before flow logic and do not have access to flow control variables 
 
 ````jsonc
 {
@@ -389,7 +389,44 @@ requires the name of an iterable collection somewhere on the context and a varia
             }
         ]
     }
+    ````
+
+### **block**
+simple way to group related activities and share locals requires an array of steps also supports expressions.
+
+````json
+    "steps":[],
+````
+* steps are executed while conditions all return true.
+    ````jsonc
+    {
+        "flow": "block",
+        "steps":[
+            {
+                "expressions":[
+                    "set('locals.thing','otherThing')"
+                ],
+
+            },
+            {
+                "expressions":[
+                    // Locals.thing still has otherThing
+                    "set('test',locals.thing)"
+                ],
+
+            }
+
+        ]
+    },
+    {
+        "expressions":[
+            // Error Locals.thing gone.
+            "set('test',locals.thing)"
+        ],
+
+    }
     ```` 
+
 
 
 ## Steps and Expressions
