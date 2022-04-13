@@ -66,20 +66,14 @@ def get_try(steps:t.List[t.Any]=[],elsesteps:t.List[t.Any]=None):
     
         
 def test_context():
-    
-    test_process = get_process_skeleton()
-    
-    test_process.process.append(get_step('teststep'))
+    test_process = get_process_skeleton([get_step('teststep')])
     
     engine, context = init_engine(test_process)
     
     assert len(engine.steps) == 1
     
 def test_engine_component_can_set_context():
-    test_process = get_process_skeleton()
-    
-
-    test_process.process.append(get_step('teststep'))
+    test_process = get_process_skeleton([get_step('teststep')])
     engine, context = init_engine(test_process)
     
     @engine.component()
@@ -91,10 +85,7 @@ def test_engine_component_can_set_context():
     assert context.test == 'Pass'
     
 def test_engine_component_can_call_context_expressions():
-    test_process = get_process_skeleton()
-    
-
-    test_process.process.append(get_step('teststep'))
+    test_process = get_process_skeleton([get_step('teststep')])
     engine, context = init_engine(test_process)
     
     @engine.component()
@@ -106,10 +97,7 @@ def test_engine_component_can_call_context_expressions():
     assert context.test == 'Pass'
     
 def test_engine_is_finished_when_finished():
-    test_process = get_process_skeleton()
-    
-    #test_process.process.append(get_step(['set("thing",Ctx()']))
-    test_process.process.append(get_step('teststep'))
+    test_process = get_process_skeleton([get_step('teststep')])
     engine, context = init_engine(test_process)
     
     assert engine.is_finished == False
@@ -123,9 +111,7 @@ def test_engine_is_finished_when_finished():
     assert engine.is_finished == True
     
 def test_context_expression_set():
-    test_process = get_process_skeleton()
-    
-    test_process.process.append(get_expression(['set("thing",True)']))
+    test_process = get_process_skeleton([get_expression(['set("thing",True)'])])
     engine, context = init_engine(test_process)
     
     assert engine.is_finished == False
@@ -139,9 +125,7 @@ def test_context_expression_set():
     assert context.thing == True
 
 def test_context_step_without_spec_remains_unfinished():
-    test_process = get_process_skeleton()
-    
-    test_process.process.append(get_expression(['set("thing",testexpression("name","is"))']))
+    test_process = get_process_skeleton([get_expression(['set("thing",testexpression("name","is"))'])])
     engine, context = init_engine(test_process)
     
     assert engine.is_finished == False
@@ -159,9 +143,7 @@ def test_context_step_without_spec_remains_unfinished():
     assert "test" not in context.keys()     
     
 def test_context_expression_custom():
-    test_process = get_process_skeleton()
-    
-    test_process.process.append(get_expression(['set("thing",testexpression("name","is"))']))
+    test_process = get_process_skeleton([get_expression(['set("thing",testexpression("name","is"))'])])
     engine, context = init_engine(test_process)
     
     @context.expression()
@@ -173,9 +155,8 @@ def test_context_expression_custom():
     assert context.thing == "name_is"
     
 def test_context_expression_custom_var_replacement():
-    test_process = get_process_skeleton()
+    test_process = get_process_skeleton([get_expression(['set("thing",testexpression(name_field,"is"))'])])
     
-    test_process.process.append(get_expression(['set("thing",testexpression(name_field,"is"))']))
     engine, context = init_engine(test_process)
     
     context.name_field = 'timmy'
