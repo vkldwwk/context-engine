@@ -174,17 +174,17 @@ def name_of_step(context:Context):
 a flow step must contain a member flow with one of the following flows.
 if, while, do while, for each, try. A copy of flow step locals are available for all sub (step and flow steps). flow steps can also contain a list of expressions these are executed before flow logic and do not have access to flow control variables 
 
-````json
+````jsonc
 {
     "expressions":[
         "some_expression()"
     ],    
     "flow": "name_of_flow",
     "Steps":[
-        ... steps / flow steps ...
+        //... steps / flow steps ...
         
     ],
-    ...
+    //...
 }
 ````
 
