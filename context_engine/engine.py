@@ -276,9 +276,14 @@ class Engine():
             self._flow_for_each(flow_step)
         elif flow_step.flow == 'try':
             self.__flow_try(flow_step)
+        elif flow_step.flow == 'block':
+            self.__flow_block(flow_step)
                
         self.frame.pop_flow()
                 
+    def __flow_block(self,flow_step):
+        self.do_step(flow_step.steps)
+        
     
     def __flow_try(self,flow_step):
         try:

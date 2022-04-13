@@ -58,14 +58,20 @@ def get_for_each(collection:str='',var:str='',steps:t.List[t.Any]=[]):
 
 def get_try(steps:t.List[t.Any]=[],elsesteps:t.List[t.Any]=None):    
     return{
-        "flow":"if",
+        "flow":"try",
         "steps":steps,
         "elsesteps":elsesteps
         
     }
+def get_block(steps:t.List[t.Any]=[],expressions:t.List[t.Any]=[]):
+    return {
+        "flow": "block",
+        "steps":steps,
+        "expressions":expressions
+    }
     
         
-def test_context():
+def test_init_engine_set_process_steps():
     test_process = get_process_skeleton([get_step('teststep')])
     
     engine, context = init_engine(test_process)
@@ -218,7 +224,57 @@ def test_for_each_local_variable_multi():
     
     assert context.test_3 == True
     
+def test_if_condition_false_steps_not_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    fi = get_if(['t1 == True'],steps)
     
+    pd = get_process_skeleton([fi])
     
+    engine, context = init_engine(pd)
     
+    context.t1 = False    
+    engine.run()
     
+    assert 'test' not in context.keys()
+    
+def test_if_condition_true_steps_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    fi = get_if(['t1 == True'],steps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True    
+    engine.run()
+    
+    assert context.test == True
+    
+def test_if_multi_condition_false_steps_not_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    fi = get_if(['t1 == True','t2 == False'],steps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True
+    context.t2 = True
+        
+    engine.run()
+    
+    assert 'test' not in context.keys()   
+    
+def test_if_multi_condition_true_steps_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    fi = get_if(['t1 == True','t2 == False'],steps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True
+    context.t2 = False
+        
+    engine.run()   
+    assert context.test == True
