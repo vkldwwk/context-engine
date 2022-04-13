@@ -312,13 +312,13 @@ class Engine():
     def _flow_for_each(self,flow_step):
         for x in self.context[flow_step.collection]:
             if type(x) is dict:
-                self.context[flow_step.var] = Ctx(x)
+                self.context.locals[flow_step.var] = Ctx(x)
             else:
-                self.context[flow_step.var] = x
+                self.context.locals[flow_step.var] = x
                 
             self.do_step(flow_step.steps)
     
-        self.context.pop(flow_step.var)
+        self.context.locals.pop(flow_step.var)
         
     def set_current_step(self,step):
         self.context.current_step = step
@@ -373,7 +373,7 @@ def init_engine(processJSON):
                     "i.type == 'video'"
                 ],
                 
-                if supports an addiotional
+                if supports an additional
                 "elsesteps":[
                     a list of steps when false
                 ]

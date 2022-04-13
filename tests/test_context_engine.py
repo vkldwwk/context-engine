@@ -1,36 +1,69 @@
-from context_engine import init_engine
+from context_engine import init_engine, Context, Engine, Frame
 from ctx import Ctx
 import typing as t
 
         
-def get_process_skeleton():
-    test_process = Ctx()
-    test_process.process = []
-    return test_process
+def get_process_skeleton(steps:t.List[str]=[]):
+    return {
+        "process":steps
+    }
     
 def get_step(name:str=None,expressions:t.List[str]=None,args:t.Any=None):
-    v = Ctx()
-    v.step = name
-    v.expressions = expressions
-    v.args = args
-    
-    return v
-
-def get_expression(expressions:t.List[str]=None,args:t.Any=None):
-    v = Ctx()
-    v.expressions = expressions
-    v.args = args
-    
-    return v
-    
-def get_if(conditions:t.List[str]=None,steps:t.List[t.Any]=None,elsesteps:t.List[t.Any]=None):    
-        v = Ctx()
-        v.flow = 'if'
-        v.conditions = conditions
-        v.steps = steps
-        v.elsesteps = elsesteps
+    return {
+        "step":name,
+        "expressions":expressions,
+        "args":args
         
-        return v
+    }
+
+def get_expression(expressions:t.List[str]=None):
+    return {
+        "expressions": expressions
+    }
+    
+def get_if(conditions:t.List[str]=[],steps:t.List[t.Any]=[],elsesteps:t.List[t.Any]=None):    
+    return{
+        "flow":"if",
+        "conditions":conditions,
+        "steps":steps,
+        "elsesteps":elsesteps
+        
+    }
+    
+def get_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[]):    
+    return{
+        "flow":"while",
+        "conditions":conditions,
+        "steps":steps,
+        
+    }
+    
+def get_do_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[]):    
+    return{
+        "flow":"do while",
+        "conditions":conditions,
+        "steps":steps,
+        
+    }
+    
+    
+def get_for_each(collection:str='',var:str='',steps:t.List[t.Any]=[]):    
+    return{
+        "flow":"for each",
+        "collection":collection,
+        "steps":steps,
+        "var":var
+        
+    }
+
+def get_try(steps:t.List[t.Any]=[],elsesteps:t.List[t.Any]=None):    
+    return{
+        "flow":"if",
+        "steps":steps,
+        "elsesteps":elsesteps
+        
+    }
+    
         
 def test_context():
     
@@ -156,6 +189,55 @@ def test_context_expression_custom_var_replacement():
     assert engine.is_finished == True 
     
     assert context.thing == "timmy_is"
+                 
+def test_stack_frame_current_step():
+    frame = Frame()
+    context = Context(frame)
+
+        
+    step1 = get_step("step1",args="path_1")
+    step2 = get_step("step2",args="path_2")
     
-def test_engine_flow_if_conditions_true():
-    pass
+    step1 = frame.push_step(step1)
+    
+    assert context.current_step is step1
+    
+    step2 = frame.push_step(step2)
+    
+    assert context.current_step is step2
+    
+    frame.pop_step()
+    
+    assert context.current_step is step1
+    
+    
+def test_for_each_local_variable():
+    steps = [ get_expression(["set(f'test_{locals.i}',True)"]) ]
+    fl = get_for_each('test_col','i',steps)
+    pd = get_process_skeleton([fl])
+    
+    engine, context = init_engine(pd)
+    
+    context.test_col = [ x for x in range(1)]
+    
+    engine.run()
+    
+    assert context.test_0 == True
+    
+def test_for_each_local_variable_multi():
+    steps = [ get_expression(["set(f'test_{locals.i}',True)"]) ]
+    fl = get_for_each('test_col','i',steps)
+    pd = get_process_skeleton([fl])
+    
+    engine, context = init_engine(pd)
+    
+    context.test_col = [ x for x in range(4)]
+    
+    engine.run()
+    
+    assert context.test_3 == True
+    
+    
+    
+    
+    
