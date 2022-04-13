@@ -9,7 +9,7 @@ engine and context are fully customizable to make processing to the point and fu
 A basic process document 
 
 
-````json
+````jsonc
 {
     "process":[
         {
@@ -95,7 +95,7 @@ is done by the engine on the context. The first thing todo is to setup a process
 
 `init_engine(processJson)` expects the follow schema as a process document
 
-````json
+````jsonc
 {
     "process":[
         // list of steps and flow steps.
