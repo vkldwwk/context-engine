@@ -278,3 +278,62 @@ def test_if_multi_condition_true_steps_run():
         
     engine.run()   
     assert context.test == True
+    
+def test_if_condition_false_elsesteps_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    elsesteps = [ get_expression(["set(f'otherTest',False)"]) ]
+    fi = get_if(['t1 == True'],steps,elsesteps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = False    
+    engine.run()
+    
+    assert context.otherTest == False
+    
+    
+def test_if_condition_true_elsesteps_not_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    elsesteps = [ get_expression(["set(f'otherTest',False)"]) ]
+    fi = get_if(['t1 == True'],steps,elsesteps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True    
+    engine.run()
+    
+    assert 'otherTest' not in context.keys()
+    
+def test_if_multi_condition_false_elsesteps_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    elsesteps = [ get_expression(["set(f'otherTest',False)"]) ]
+    fi = get_if(['t1 == True','t2 == False'],steps,elsesteps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True
+    context.t2 = True
+        
+    engine.run()
+    assert context.otherTest == False
+    
+def test_if_multi_condition_true_elsesteps_not_run():
+    steps = [ get_expression(["set(f'test',True)"]) ]
+    elsesteps = [ get_expression(["set(f'otherTest',False)"]) ]
+    fi = get_if(['t1 == True','t2 == False'],steps,elsesteps)
+    
+    pd = get_process_skeleton([fi])
+    
+    engine, context = init_engine(pd)
+    
+    context.t1 = True
+    context.t2 = False
+        
+    engine.run()   
+    assert 'otherTest' not in context.keys()   
