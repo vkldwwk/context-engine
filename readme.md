@@ -326,6 +326,7 @@ require a list of python expressions that must all return true
     ````json
     {
         "flow": "try",
+        "var":"exception_name",
         "steps":[
             {
                 "expressions":[
@@ -343,7 +344,8 @@ require a list of python expressions that must all return true
         ]
     }
     ````
-* Try can optionally contain a block for `"catchsteps":[]` as block to execute after exception and/or var to store the exception. The raised exception is stored in locals._ when var is omitted
+* Try can optionally contain a block for `"catchsteps":[]` as block to execute after exception and/or var to store the exception. 
+The raised exception is stored in locals._ when var is omitted
     ````jsonc
     {
         "flow": "try",
@@ -393,7 +395,7 @@ requires the name of an iterable collection somewhere on the context and a varia
     }
     ````
 
-### **block**
+### **Block**
 simple way to group related activities and share locals requires an array of steps also supports expressions.
 
 ````json
