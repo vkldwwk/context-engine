@@ -1,3 +1,4 @@
+from multiprocessing import context
 from context_engine import init_engine, Context, Engine, Frame
 from ctx import Ctx
 import typing as t
@@ -56,14 +57,14 @@ def get_for_each(collection:str='',var:str='',steps:t.List[t.Any]=[]):
         
     }
 
-def get_try(steps:t.List[t.Any]=[],elsesteps:t.List[t.Any]=None):    
+def get_try(steps:t.List[t.Any]=[],catchsteps:t.List[t.Any]=None):    
     return{
         "flow":"try",
         "steps":steps,
-        "elsesteps":elsesteps
+        "catchsteps":catchsteps
         
     }
-def get_block(steps:t.List[t.Any]=[],expressions:t.List[t.Any]=[]):
+def get_block(steps:t.List[t.Any]=[],expressions:t.List[str]=[]):
     return {
         "flow": "block",
         "steps":steps,
@@ -337,3 +338,129 @@ def test_if_multi_condition_true_elsesteps_not_run():
         
     engine.run()   
     assert 'otherTest' not in context.keys()   
+    
+def test_for_each_local_variable_multi_step_locals_shared_block():
+    steps = [ get_expression(["set(f'test_{locals.i}',True)",
+                              "set('locals.i',locals.i + 1)",
+                              "list_of_things.append(locals.i)"])]
+
+    fl = get_for_each('test_col','i',steps)
+    pd = get_process_skeleton([fl])
+    
+    engine, context = init_engine(pd)
+    
+    context.test_col = [ x for x in range(4)]
+    
+    context.list_of_things = []
+    engine.run()
+    
+    assert context.list_of_things[0] == 1
+    
+def test_block_same_share_locals():
+    blk_exp = [
+        "set('locals.mylist',[f'{x}_num' for x in range(3)])"
+    ]
+    steps = [ 
+             get_expression(["locals.mylist.append('xx_1')"]),
+             get_expression(["locals.mylist.append('xx_3')"]),
+             get_expression(["set('mylist',list(locals.mylist))"])
+            ]
+    blk = get_block(steps,blk_exp)
+    pd = get_process_skeleton([blk])
+    
+    engine, context = init_engine(pd)
+    
+    engine.run()
+
+    assert context.mylist[-1] =='xx_3'
+    
+    
+def test_while_contition_true_steps_run():
+    pd = get_process_skeleton([
+         get_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert len(context.outlist) == 3
+    
+    
+def test_while_contition_true_steps_not_run():
+    pd = get_process_skeleton([
+         get_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = True
+    
+    engine.run()
+    
+    assert len(context.outlist) == 0
+    
+    
+def test_try_catch_steps_run_on_except():
+    pd = get_process_skeleton([
+        get_try([get_expression(["true == true","set_continued()"])],[get_expression(['set_error(locals._)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    @context.expression()
+    def set_error(context:Context,err):
+        context.error = err
+    
+    @context.expression()
+    def set_continued(context:Context):
+        context.continued = True
+        
+    engine.run()
+    
+    assert type(context.error) is Exception
+    assert "continued" not in context.keys()
+        
+def test_do_while_contition_true_steps_run():
+    pd = get_process_skeleton([
+         get_do_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert len(context.outlist) == 3
+    
+def test_do_while_contition_false_steps_run():
+    pd = get_process_skeleton([
+         get_do_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = False
+    context.cond2 = True
+    
+    engine.run()
+    
+    assert len(context.outlist) == 1

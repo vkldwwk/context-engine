@@ -56,7 +56,8 @@ A basic process document
             flow steps change the processing control dynamically and can stack
             according to application a for each loops over a collection dynamically
             placing the current item in var.Flow steps also support expressions
-            however these execute once before flow logic.
+            however these execute once before flow logic. flow steps also share locals
+            of all sub steps.
             */
             "flow": "for each",
             "collection":"default_project_dirs",
@@ -342,10 +343,11 @@ require a list of python expressions that must all return true
         ]
     }
     ````
-* Try can optionally contain a block for `"catchsteps":[]` as block to execute afteer exception.
-    ````json
+* Try can optionally contain a block for `"catchsteps":[]` as block to execute after exception and/or var to store the exception. The raised exception is stored in locals._ when var is omitted
+    ````jsonc
     {
         "flow": "try",
+        "var":"exception_name",
         "steps":[
             {
                 "expressions":[
@@ -356,7 +358,7 @@ require a list of python expressions that must all return true
         "catchsteps":[
             {
                 "expressions":[
-                    "cleanupThing()"
+                    "cleanupThing(locals.exception_name)"
                 ]
             }
         ]
@@ -367,7 +369,7 @@ require a list of python expressions that must all return true
 </div>
 
 ### **For each**
-requires the name of an iterable collection somewhere on the context and a variable name to store current item. the varible is created by the block at `locals.[variableName]` or `context.locals.[variableName]`
+requires the name of an iterable collection somewhere on the context and a variable name to store current item. the variable is created by the block at `locals.[variableName]` or `context.locals.[variableName]`
 
 ````json
     "collection":"default_project_dirs",
@@ -438,16 +440,15 @@ Expressions can be run in a step `context.expressionName(signature)`
 
 
 ````python
-import context_engine
-
 # Start by creating a new context engine context
 
-engine,context = context_engine.engine_builder() 
+engine,context = engine_builder() 
 
 # context here is basically a workspace where jobs can be worked on.
 
 
  # The context is based on a dictionary that allows both self.property and self['prop'] access and assignment
+ # setup area for processing
 
 context.dbc = sqlite3.connect(db)
 
@@ -458,7 +459,8 @@ context.list_of_things = []
 def fun_with_names(context,name:str,other:str)
     context.list_of_things.append(f'{name}_{other}')
 
-#Defining a engine component if the name is ommited the function name is used.
+#Defining a engine component if the name is omitted the function name is used. engine components are not available
+# as expressions but accept args that can be any type.
 @engine.component(name="init")
 def init(context):
     pass
