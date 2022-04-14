@@ -35,34 +35,6 @@ class Expression(Command):
     
     def __call__(self,*args, **kwargs):
         return self.command(self.context,*args,**kwargs)
-        
-    
-
-class PrettyDefaults():
-    """Mainly for working with loosly typed JSON that represent objects with default values when missing
-    """
-    def __init__(self,list_kvp_defaults) -> None:
-        """creates a new instance
-
-        Args:
-            list_kvp_defaults (str,any): list of properties and defualt value
-        """
-        self.list_kvp_defaults = list_kvp_defaults
-        
-    def make_pretty(self,ugly:t.Dict):
-        """returns newly created Ctx with default values appled and merged with provided ugly data
-
-        Args:
-            ugly (t.Dict): jason's ugly dic
-
-        Returns:
-            Ctx: beautifly crafted data
-        """
-        val=Ctx({k:v for k,v in self.default_kvp_list})
-        for k,v in ugly.items():
-            val[k] = v
-            
-        return val
     
     
 class Frame():
