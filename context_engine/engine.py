@@ -1,3 +1,4 @@
+from re import X
 from ctx import Ctx
 import typing as t
 
@@ -68,14 +69,14 @@ class Frame():
     def __init__(self) -> None:
         self.var = Ctx()
         self.step_props = [('step',None),('expressions',None),('args',None),('error',None),('flow',None),("locals",Ctx())]
-        self.flow_props = [('flow',None),('conditions',None),('args',None),('error',None),("elsesteps",None),("collection",None),("var",None),("fail_on_error",True),("catchsteps",None),("locals",Ctx())]
+        self.flow_props = [('flow',None),('expressions',None),('conditions',None),('args',None),('error',None),("elsesteps",None),("collection",None),("var",None),("fail_on_error",True),("catchsteps",None),("locals",Ctx())]
         self.step_stack = []
         self.flow_stack = []
     
     def push_step(self,step):
         ps = self.__get_pretty_step(step)
         
-        # If flow step is in a flow block link the locals of steps in that block
+        # If step is in a flow block link the locals of steps in that block
         if len(self.flow_stack) > 0:
             ps.locals = self.current_step.locals
             
@@ -85,9 +86,9 @@ class Frame():
     def push_flow(self,flow):
         ps = self.__get_pretty_flow(flow)
         
-        # If flow step is in a flow block shallow copy the locals.
+        # If flow step is in a flow block link the locals.
         if len(self.flow_stack) > 0:
-            ps.locals = Ctx(self.current_step.locals)
+            ps.locals = self.current_step.locals
         
         self.flow_stack.append(ps)
         return ps
@@ -122,8 +123,8 @@ class Frame():
     
         
 class Context(Ctx):
-    """Context for Engine processing Context. Do not create this yourself.
-       A factory method exists to create context and engine at the same time.
+    """Context for Engine processing Context. 
+    It's best to use builder method to construct engine and context at same time.
        
        Context's base class is Ctx that is a dictionary that allows
        both index and dot notation:
@@ -189,7 +190,13 @@ class Context(Ctx):
     ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
         """Adds expression to to context. 
            
-           name and signature are used when specifying expression
+           expects a function with the first param being type Context
+            def get_full_name(context:Context,first,middle,last):
+                pass
+            results in a context function that can be called on the current context
+            by name directly as an expression with the signature get_full_name(first,middle,last)
+            or called in step or other python code context.get_full_name(first,middle,last)
+
         """
         from .decorators import expression
 
@@ -202,7 +209,8 @@ class Context(Ctx):
      
 
 class Engine():
-    """ Engine processing class for context engine. Do not create this class directly use builder method to construct.
+    """ Engine processing class for context engine. 
+    It's best to use builder method to construct engine and context at same time.
     """
     def __init__(
         self,
@@ -288,7 +296,11 @@ class Engine():
     def __flow_try(self,flow_step):
         try:
             self.do_step(flow_step.steps)
-        except:
+        except Exception as x:
+            if flow_step.var is None:
+                flow_step.var = "_"
+                self.context.locals[flow_step.var] = Exception(x)
+                
             if flow_step.catchsteps is not None:
                 self.do_step(flow_step.catchsteps)
 
