@@ -201,35 +201,34 @@ class Engine():
         context: "Context",
         frame: "Frame"
         ) -> None:
-        self.steps = []
-        self.context = context
-        self.frame = frame
-        self.has_started = False
-        self.is_error = False
-        self.halt = False
+        self.steps:t.List[Step] = []
+        self.context:Context = context
+        self.frame:Frame = frame
+        self.has_started:bool = False
+        self.is_error:bool = False
+        self.halt:bool = False
         self.step_functions: t.Dict[str,Command]= dict()
-        self.run_once = False
-        self.repeat_run = False
-        pass
+        self.run_once:bool = False
+        self.repeat_run:bool = False
     
     def __is_finished__(self):
         return len(self.frame.step_stack) == 0 and self.has_started
     
-    is_finished = property(__is_finished__)
+    is_finished:bool = property(__is_finished__)
     
     def run(self):
         # while not( self.is_finished and self.is_error and self.halt) and len(self.steps) > 0:
         self.has_started = True
-        self.do_step(self.steps)
+        self.__do_step(self.steps)
         
-    def do_step(self,list_steps:t.List):
+    def __do_step(self,list_steps:t.List):
         for step in list_steps:
             
             step = self.frame.push_step(step)
             
             # Is flow step?
             if step.flow is not None:
-                self.do_flow(step)
+                self.__do_flow(step)
             else:
                 # Do we have an expression?
                 if step.expressions is not None:
@@ -245,7 +244,7 @@ class Engine():
         for expression in expression_list:
             self.context.eval_expression(expression)
 
-    def do_flow(self,flow_step):
+    def __do_flow(self,flow_step):
         """Base processing for flow step blocks.
 
         Args:
@@ -259,13 +258,13 @@ class Engine():
             self.__eval_step_expressions(flow_step.expressions)
                
         if flow_step.flow == 'while':
-            self._flow_while(flow_step)        
+            self.__flow_while(flow_step)        
         elif flow_step.flow == 'if':
-            self._flow_if(flow_step)
+            self.__flow_if(flow_step)
         elif flow_step.flow == 'do while':
-            self._flow_while_do(flow_step)
+            self.__flow_while_do(flow_step)
         elif flow_step.flow == 'for each':
-            self._flow_for_each(flow_step)
+            self.__flow_for_each(flow_step)
         elif flow_step.flow == 'try':
             self.__flow_try(flow_step)
         elif flow_step.flow == 'block':
@@ -274,63 +273,61 @@ class Engine():
         self.frame.pop_flow()
                 
     def __flow_block(self,flow_step):
-        self.do_step(flow_step.steps)
-        
+        self.__do_step(flow_step.steps)     
     
     def __flow_try(self,flow_step):
         try:
-            self.do_step(flow_step.steps)
+            self.__do_step(flow_step.steps)
         except Exception as x:
             if flow_step.var is None:
                 flow_step.var = "_"
                 self.context.locals[flow_step.var] = Exception(x)
                 
             if flow_step.catchsteps is not None:
-                self.do_step(flow_step.catchsteps)
+                self.__do_step(flow_step.catchsteps)
+                
+            self.context.locals.pop(flow_step.var)
 
             
-    def _flow_while_do(self,flow_step):
-        self.do_step(flow_step.steps)
-        self._flow_while(flow_step)
+    def __flow_while_do(self,flow_step):
+        self.__do_step(flow_step.steps)
+        self.__flow_while(flow_step)
                 
-    def _flow_while(self,flow_step):
-        while self.evaluate_flow_conditions(flow_step) is True:
-            self.do_step(flow_step.steps)      
+    def __flow_while(self,flow_step):
+        while self.__evaluate_flow_conditions(flow_step) is True:
+            self.__do_step(flow_step.steps)      
 
-    def _flow_if(self,flow_step):
-        if self.evaluate_flow_conditions(flow_step) is True:
-            self.do_step(flow_step.steps)
+    def __flow_if(self,flow_step):
+        if self.__evaluate_flow_conditions(flow_step) is True:
+            self.__do_step(flow_step.steps)
         elif flow_step.elsesteps is not None:
-            self.do_step(flow_step.elsesteps)
+            self.__do_step(flow_step.elsesteps)
 
-    def evaluate_flow_conditions(self,flow_step) -> bool:
+    def __evaluate_flow_conditions(self,flow_step) -> bool:
         reg = []
         for condition in flow_step.conditions:
             reg.append(self.context.eval_expression(condition))
             
         return all(reg)
     
-    def _flow_for_each(self,flow_step):
+    def __flow_for_each(self,flow_step):
         for x in self.context[flow_step.collection]:
             if type(x) is dict:
                 self.context.locals[flow_step.var] = Ctx(x)
             else:
                 self.context.locals[flow_step.var] = x
                 
-            self.do_step(flow_step.steps)
+            self.__do_step(flow_step.steps)
     
         self.context.locals.pop(flow_step.var)
-        
-    def set_current_step(self,step):
-        self.context.current_step = step
-    
+            
        
     def component(
         self,*args: t.Any, **kwargs: t.Any
     ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
         """Adds component to engine 
            
-           step_name is the name that is refrenced in json
+           step_name is the name that is referenced in json
         """
         from .decorators import component
 

@@ -518,9 +518,119 @@ def test_frame_link_locals_sub_steps():
     assert step5.locals is flow.locals
     assert step1.locals is not flow.locals
     
+def test_frame_link_locals_sub_steps_depth():
+    step1 = get_step(name="step1")
+    step2 = get_step(name="step2")
+    step3 = get_step(name="step3")
+    step4 = get_step(name="step4")
+    step5 = get_step(name="step5")
+     
+    flow = get_if()
+    flow2 = get_if()
+    flow3 = get_if()
+
+    frame = Frame()
+    # step 1,2
+   
+    step1 =frame.push_step(step1)
+    flow = frame.push_flow(flow)
+    
+    step2 = frame.push_step(step2) 
+    flow2 = frame.push_flow(flow2)
+    # flow
+    
+    # step 3,4,5
+    step3 = frame.push_step(step3)
+    
+    step4 = frame.push_step(step4)
+    
+    flow3 = frame.push_flow(flow3)
+    step5 = frame.push_step(step5)
+    
+    assert step1.locals is not step2.locals
+    assert step2.locals is flow.locals
+    assert step3.locals is step4.locals
+    
+    assert step5.locals is not step4.locals
+    assert step5.locals is flow3.locals
+    
+def test_frame_link_locals_sub_steps_depth_scope():
+    step1 = get_step(name="step1")
+    step2 = get_step(name="step2")
+    step3 = get_step(name="step3")
+    step4 = get_step(name="step4")
+    step5 = get_step(name="step5")
+     
+    flow = get_if()
+    flow2 = get_if()
+    flow3 = get_if()
+
+    frame = Frame()
+    # step 1,2
+   
+    step1 =frame.push_step(step1)
+    frame.current_step.locals.no_block = True
+    
+    flow = frame.push_flow(flow)
+    
+    step2 = frame.push_step(step2) 
+    frame.current_step.locals.first_block = True
+    flow2 = frame.push_flow(flow2)
+    # flow
+    
+    # step 3,4,5
+    step3 = frame.push_step(step3)
+    frame.current_step.locals.second_block = True
+    step4 = frame.push_step(step4)
+    
+    flow3 = frame.push_flow(flow3)
+    step5 = frame.push_step(step5)
+    
+    assert 'no_block' not in step2.locals.keys()
+    assert 'first_block' in step5.locals.keys()
+    assert 'second_block' in step5.locals.keys()
+    
+    assert 'first_block' not in step1.locals.keys()
+    assert 'second_block' not in step1.locals.keys()
     
     
+def test_frame_link_locals_sub_steps_depth_scope_ref_value():
+    step1 = get_step(name="step1")
+    step2 = get_step(name="step2")
+    step3 = get_step(name="step3")
+    step4 = get_step(name="step4")
+    step5 = get_step(name="step5")
+     
+    flow = get_if()
+    flow2 = get_if()
+    flow3 = get_if()
+    flow4 = get_if()
+
+    frame = Frame()
+    # step 1,2
+   
+    step1 =frame.push_step(step1)
+    frame.current_step.locals.no_block = True
     
+    flow = frame.push_flow(flow)
     
+    step2 = frame.push_step(step2) 
+    frame.current_step.locals.first_block = True
+    flow2 = frame.push_flow(flow2)
+    # flow
     
+    # step 3,4,5
+    step3 = frame.push_step(step3)
+    frame.current_step.locals.second_block = list()
+    flow3 = frame.push_flow(flow3)
+    step4 = frame.push_step(step4)
     
+    flow3 = frame.push_flow(flow3)
+    step5 = frame.push_step(step5)
+    
+    frame.current_step.locals.first_block = False
+    frame.current_step.locals.second_block.append("")
+    assert step5.locals.second_block is step3.locals.second_block
+    assert step5.locals.first_block is not step2.locals.first_block
+    assert step2.locals.first_block == True
+    assert len(step3.locals.second_block) ==  1
