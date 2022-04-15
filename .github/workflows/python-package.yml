@@ -42,6 +42,6 @@ jobs:
         python -m poetry build
     - name: test publish
       run: |
-        python -m poetry config repositories.test https://test.pypi.org/simple/
+        python -m poetry config repositories.test https://test.pypi.org/legacy/
         python -m poetry publish -r test --username vkldjwwk --password ${{secrets.PYPI}}
         
