@@ -36,18 +36,39 @@ class Expression(Command):
     def __call__(self,*args, **kwargs):
         return self.command(self.context,*args,**kwargs)
     
+class Step(Ctx):
+    def __init__(self,step:t.Dict):
+        # not a flow
+        self.flow = None
+            
+        self.step = None
+        self.expressions = None
+        self.args = None
+        self.locals = Ctx()
+        self.error = None
+        
+        for k, v in step.items():
+            self[k] = v
+        
+class Flow(Step):
+    def __init__(self, step:t.Dict):
+        self.conditions = None
+        self.elsesteps = None
+        self.collection = None
+        self.var = None
+        self.fail_on_error = None
+        self.catchsteps = None
+        super().__init__(step)
     
 class Frame():
     def __init__(self) -> None:
         self.var = Ctx()
-        self.step_props = [('step',None),('expressions',None),('args',None),('error',None),('flow',None),("locals",Ctx())]
-        self.flow_props = [('flow',None),('expressions',None),('conditions',None),('args',None),('error',None),("elsesteps",None),("collection",None),("var",None),("fail_on_error",True),("catchsteps",None),("locals",Ctx())]
         self.step_stack = []
         self.flow_stack = []
     
-    def push_step(self,step):
-        ps = self.__get_pretty_step(step)
-        
+    def push_step(self,step) -> Step:
+        ps = Step(step)
+
         # If step is in a flow block link the locals of steps in that block
         if len(self.flow_stack) > 0:
             ps.locals = self.current_step.locals
@@ -55,8 +76,8 @@ class Frame():
         self.step_stack.append(ps)
         return ps
         
-    def push_flow(self,flow):
-        ps = self.__get_pretty_flow(flow)
+    def push_flow(self,flow) -> Flow:
+        ps = Flow(flow)
         
         # If flow step is in a flow block link the locals.
         if len(self.flow_stack) > 0:
@@ -71,24 +92,11 @@ class Frame():
     def pop_flow(self):
         return self.flow_stack.pop()
     
-    def __get_current_step(self):
+    def __get_current_step(self) -> Step:
         return self.step_stack[-1]
     
-    def __get_current_flow(self):
+    def __get_current_flow(self) -> Flow:
         return self.flow_stack[-1]
-    
-    def __get_pretty_flow(self,step):
-        return self.__make_pretty(step,self.flow_props)
-    
-    def __get_pretty_step(self,step):
-        return self.__make_pretty(step,self.step_props)
-    
-    def __make_pretty(self,step:t.Dict,default_kvp_list):
-        val=Ctx({k:v for k,v in default_kvp_list})
-        for k,v in step.items():
-            val[k] = v
-            
-        return val
         
     current_step = property(__get_current_step)
     current_flow = property(__get_current_flow)

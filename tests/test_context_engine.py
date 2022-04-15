@@ -464,3 +464,7 @@ def test_do_while_contition_false_steps_run():
     engine.run()
     
     assert len(context.outlist) == 1
+    
+def test_frame_push_step_returns():
+    step = get_step(name='step')
+    
