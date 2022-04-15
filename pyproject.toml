@@ -1,15 +1,31 @@
 [tool.poetry]
 name = "context-engine"
 version = "0.1.0"
-description = ""
+description = "Simple way to organize processing jobs. generally best when one or more specifications is involved."
 authors = ["vkldwwk <jeff.elliott.dev@gmail.com>"]
-
+license = "GPL-3.0-or-later"
+readme = "readme.md"
+homepage = "https://github.com/vkldwwk/context-engine"
+repository = "https://github.com/vkldwwk/context-engine"
+keywords = ["context", "engine","parser","specification","python"]
+classifiers = [
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.9',
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+include = [
+    "LICENSE"
+]
 [tool.poetry.dependencies]
 python = "^3.9"
 ctx = "^0.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+flake8 = "^4.0.1"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
