@@ -3,6 +3,8 @@ from context_engine import init_engine, Context, Engine, Frame
 from ctx import Ctx
 import typing as t
 
+from context_engine.engine import Flow, Step
+
         
 def get_process_skeleton(steps:t.List[str]=[]):
     return {
@@ -465,6 +467,60 @@ def test_do_while_contition_false_steps_run():
     
     assert len(context.outlist) == 1
     
-def test_frame_push_step_returns():
+def test_frame_push_step_returns_step():
     step = get_step(name='step')
+    frame = Frame()
+    step = frame.push_step(step)
+    assert type(step) is Step
+    
+def test_frame_push_step_current_step():
+    step = get_step(name='step')
+    frame = Frame()
+    step = frame.push_step(step)
+    assert step is frame.current_step
+
+def test_frame_push_flow_step_return_flow():
+    flow = get_if()
+    frame = Frame()
+    
+    flow = frame.push_flow(flow)
+    assert len(frame.step_stack) == 0
+    assert type(frame.current_flow) is Flow
+    
+def test_frame_link_locals_sub_steps():
+    step1 = get_step(name="step1")
+    step2 = get_step(name="step2")
+    step3 = get_step(name="step3")
+    step4 = get_step(name="step4")
+    step5 = get_step(name="step5")
+     
+    flow = get_if()
+
+    frame = Frame()
+    # step 1,2
+   
+    step1 =frame.push_step(step1)
+    step2 = frame.push_step(step2)
+    
+    # flow
+    flow = frame.push_flow(flow)
+    
+    # step 3,4,5
+    step3 = frame.push_step(step3)
+    step4 = frame.push_step(step4)
+    step5 = frame.push_step(step5)
+    
+        
+    frame.current_step.locals.thing = True
+    
+    assert 'thing' not in step1.locals.keys()
+    assert 'thing' in flow.locals.keys()
+    assert step5.locals is flow.locals
+    assert step1.locals is not flow.locals
+    
+    
+    
+    
+    
+    
     

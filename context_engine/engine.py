@@ -37,6 +37,8 @@ class Expression(Command):
         return self.command(self.context,*args,**kwargs)
     
 class Step(Ctx):
+    """Base class for step and flow ops build on ctx dictionary
+    """
     def __init__(self,step:t.Dict):
         # not a flow
         self.flow = None
@@ -62,34 +64,36 @@ class Flow(Step):
     
 class Frame():
     def __init__(self) -> None:
-        self.var = Ctx()
-        self.step_stack = []
-        self.flow_stack = []
+        self.step_stack:t.List[Step] = []
+        self.flow_stack:t.List[Flow] = []
     
     def push_step(self,step) -> Step:
         ps = Step(step)
-
-        # If step is in a flow block link the locals of steps in that block
-        if len(self.flow_stack) > 0:
-            ps.locals = self.current_step.locals
-            
+        ps.locals = self.__getLocals(ps)
         self.step_stack.append(ps)
         return ps
         
     def push_flow(self,flow) -> Flow:
         ps = Flow(flow)
-        
-        # If flow step is in a flow block link the locals.
-        if len(self.flow_stack) > 0:
-            ps.locals = self.current_step.locals
-        
+        ps.locals = self.__getLocals(ps,True)
         self.flow_stack.append(ps)
         return ps
         
-    def pop_step(self):
+    def __getLocals(self,step,is_flow:bool=False) -> Ctx:
+        # if in a flow block and another flow block is on stack shallow copy locals
+        if is_flow and len(self.flow_stack) > 0:
+            return Ctx(self.current_flow.locals)
+        # if in a step and flow stack not empty link locals with flow
+        elif not is_flow and len(self.flow_stack) > 0:
+            return self.current_flow.locals
+        # use step/flow locals
+        else:
+            return step.locals
+        
+    def pop_step(self) -> Step:
         return self.step_stack.pop()
         
-    def pop_flow(self):
+    def pop_flow(self) -> Flow:
         return self.flow_stack.pop()
     
     def __get_current_step(self) -> Step:
@@ -98,8 +102,8 @@ class Frame():
     def __get_current_flow(self) -> Flow:
         return self.flow_stack[-1]
         
-    current_step = property(__get_current_step)
-    current_flow = property(__get_current_flow)
+    current_step:Step = property(__get_current_step)
+    current_flow:Flow = property(__get_current_flow)
     
         
 class Context(Ctx):
@@ -136,10 +140,10 @@ class Context(Ctx):
         self.frame = frame
         super().__init__()
         
-    def __get_current_step(self):
+    def __get_current_step(self) -> Step:
         return self.frame.current_step
     
-    def __get_current_flow(self):
+    def __get_current_flow(self) -> Flow:
         return self.frame.current_flow
     
     def __get_current_args(self):
@@ -148,10 +152,10 @@ class Context(Ctx):
     def __get_current_locals(self):
         return self.frame.current_step.locals
     
-    current_step = property(__get_current_step)
-    current_flow = property(__get_current_flow)
+    current_step:Step = property(__get_current_step)
+    current_flow:Flow = property(__get_current_flow)
     args = property(__get_current_args)
-    locals= property(__get_current_locals)
+    locals:Ctx = property(__get_current_locals)
     
     def eval_expression(self,expression):
         """Excecutes an expression in the context of this context/engine.
@@ -248,7 +252,7 @@ class Engine():
             flow_step (_type_): _description_
         """
         flow_step = self.frame.push_flow(flow_step)
-
+        
         # Flow step expressions are executed once before flow logic so no
         # access to loop variables useful for setting up locals for processing.
         if flow_step.expressions is not None:
