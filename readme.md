@@ -5,7 +5,7 @@ Simple way to organize processing jobs. generally best when one or more specific
 
 engine and context are fully customizable to make processing to the point and fully testable. steps and custom expressions are defined in python also support valid python expressions for working with context.
 
-## Into 
+## Intro 
 A basic process document 
 
 
@@ -126,7 +126,7 @@ def my_data_engine_factory():
     def some_weird_name(context:Context):
         pass
     
-    # setup expressions. expressions are just python fuctions that can be called 
+    # setup expressions. expressions are just python functions that can be called 
     # in addition to regular python expressions.
     @context.expression(name="log")
     def log_process(name:str,level:str,**kwargs):
@@ -200,7 +200,7 @@ require a list of python expressions that must all return true
     "i.type == 'video'"
 ],
 ````
-* steps are executed when condiotions all return true.
+* steps are executed when conditions all return true.
     ````json
     {
         "flow": "if",
@@ -440,7 +440,7 @@ Each named step executes a configured code piece for that step. Steps are passed
 
 Expressions can be run in a step `context.expressionName(signature)` 
 
-***Note context is injected so no need to specify context in expression signature. when calling from either python through `context.expressionName(signature)` or `expressionName(signature)` but a varibale representing context must be the first argument to the expression definition in python***
+***Note context is injected so no need to specify context in expression signature. when calling from either python through `context.expressionName(signature)` or `expressionName(signature)` but a variable representing context must be the first argument to the expression definition in python***
 
 
 ````python
