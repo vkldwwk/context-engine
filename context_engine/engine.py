@@ -1,3 +1,4 @@
+from array import array
 from re import X
 from ctx import Ctx
 import typing as t
@@ -61,46 +62,60 @@ class Flow(Step):
         self.fail_on_error = None
         self.catchsteps = None
         super().__init__(step)
+        
+    def __var_is_list(self):
+        return type(self.var) == list
+    
+    is_var_list:bool = property(__var_is_list)
     
 class Frame():
     def __init__(self) -> None:
-        self.step_stack:t.List[Step] = []
-        self.flow_stack:t.List[Flow] = []
+        self.__step_stack:t.List[Step] = []
+        self.__flow_stack:t.List[Flow] = []
     
     def push_step(self,step) -> Step:
         ps = Step(step)
         ps.locals = self.__getLocals(ps)
-        self.step_stack.append(ps)
+        self.__step_stack.append(ps)
         return ps
         
     def push_flow(self,flow) -> Flow:
         ps = Flow(flow)
         ps.locals = self.__getLocals(ps,True)
-        self.flow_stack.append(ps)
+        self.__flow_stack.append(ps)
         return ps
+    
+    def __flow_stack_empty(self):
+        return len(self.__flow_stack) == 0
+    
+    def __step_stack_empty(self):
+        return len(self.__flow_stack) == 0
+    
+    flow_stack_is_empty:bool = property(__flow_stack_empty)
+    step_stack_is_empty:bool = property(__step_stack_empty)
         
     def __getLocals(self,step,is_flow:bool=False) -> Ctx:
         # if in a flow block and another flow block is on stack shallow copy locals
-        if is_flow and len(self.flow_stack) > 0:
+        if is_flow and not self.flow_stack_is_empty:
             return Ctx(self.current_flow.locals)
         # if in a step and flow stack not empty link locals with flow
-        elif not is_flow and len(self.flow_stack) > 0:
+        elif not is_flow and not self.flow_stack_is_empty:
             return self.current_flow.locals
         # use step/flow locals
         else:
             return step.locals
         
     def pop_step(self) -> Step:
-        return self.step_stack.pop()
+        return self.__step_stack.pop()
         
     def pop_flow(self) -> Flow:
-        return self.flow_stack.pop()
+        return self.__flow_stack.pop()
     
     def __get_current_step(self) -> Step:
-        return self.step_stack[-1]
+        return self.__step_stack[-1]
     
     def __get_current_flow(self) -> Flow:
-        return self.flow_stack[-1]
+        return self.__flow_stack[-1]
         
     current_step:Step = property(__get_current_step)
     current_flow:Flow = property(__get_current_flow)
@@ -136,21 +151,20 @@ class Context(Ctx):
         Args:
             frame (Frame): stack frame for engine context.
         """
-        self.cur_frame ={}
-        self.frame = frame
+        self.__frame = frame
         super().__init__()
         
     def __get_current_step(self) -> Step:
-        return self.frame.current_step
+        return self.__frame.current_step
     
     def __get_current_flow(self) -> Flow:
-        return self.frame.current_flow
+        return self.__frame.current_flow
     
     def __get_current_args(self):
-        return self.frame.current_step.args
+        return self.__frame.current_step.args
     
     def __get_current_locals(self):
-        return self.frame.current_step.locals
+        return self.__frame.current_step.locals
     
     current_step:Step = property(__get_current_step)
     current_flow:Flow = property(__get_current_flow)
@@ -158,7 +172,7 @@ class Context(Ctx):
     locals:Ctx = property(__get_current_locals)
     
     def eval_expression(self,expression):
-        """Excecutes an expression in the context of this context/engine.
+        """Executes an expression in the context of this context/engine.
 
         Args:
             expression (str): python expression to evaluate
@@ -212,7 +226,7 @@ class Engine():
         self.repeat_run:bool = False
     
     def __is_finished__(self):
-        return len(self.frame.step_stack) == 0 and self.has_started
+        return self.frame.step_stack_is_empty and self.has_started
     
     is_finished:bool = property(__is_finished__)
     
@@ -246,9 +260,6 @@ class Engine():
 
     def __do_flow(self,flow_step):
         """Base processing for flow step blocks.
-
-        Args:
-            flow_step (_type_): _description_
         """
         flow_step = self.frame.push_flow(flow_step)
         
@@ -256,53 +267,68 @@ class Engine():
         # access to loop variables useful for setting up locals for processing.
         if flow_step.expressions is not None:
             self.__eval_step_expressions(flow_step.expressions)
-               
-        if flow_step.flow == 'while':
-            self.__flow_while(flow_step)        
+        
+        # Flow processing logic     
+        if flow_step.flow == 'block':
+            self.__flow_block(flow_step)
+        elif flow_step.flow == 'try':
+            self.__check_var_default_when_none(flow_step)
+            self.__flow_try(flow_step)
         elif flow_step.flow == 'if':
             self.__flow_if(flow_step)
-        elif flow_step.flow == 'do while':
-            self.__flow_while_do(flow_step)
         elif flow_step.flow == 'for each':
             self.__flow_for_each(flow_step)
-        elif flow_step.flow == 'try':
-            self.__flow_try(flow_step)
-        elif flow_step.flow == 'block':
-            self.__flow_block(flow_step)
-               
+        elif flow_step.flow == 'while':
+            self.__check_var_default_when_none(flow_step)
+            self.__flow_while(flow_step)        
+        elif flow_step.flow == 'do while':
+            self.__check_var_default_when_none(flow_step)
+            self.__flow_do_while(flow_step)
+                 
         self.frame.pop_flow()
                 
-    def __flow_block(self,flow_step):
+    def __flow_block(self,flow_step:Flow):
         self.__do_step(flow_step.steps)     
     
-    def __flow_try(self,flow_step):
+    def __flow_try(self,flow_step:Flow):
         try:
             self.__do_step(flow_step.steps)
         except Exception as x:
-            if flow_step.var is None:
-                flow_step.var = "_"
-                self.context.locals[flow_step.var] = Exception(x)
+            self.context.locals[flow_step.var] = Exception(x)
                 
             if flow_step.catchsteps is not None:
                 self.__do_step(flow_step.catchsteps)
                 
             self.context.locals.pop(flow_step.var)
 
-            
-    def __flow_while_do(self,flow_step):
-        self.__do_step(flow_step.steps)
-        self.__flow_while(flow_step)
-                
-    def __flow_while(self,flow_step):
-        while self.__evaluate_flow_conditions(flow_step) is True:
-            self.__do_step(flow_step.steps)      
-
-    def __flow_if(self,flow_step):
+    def __flow_if(self,flow_step:Flow):
         if self.__evaluate_flow_conditions(flow_step) is True:
             self.__do_step(flow_step.steps)
         elif flow_step.elsesteps is not None:
             self.__do_step(flow_step.elsesteps)
 
+    def __flow_for_each(self,flow_step:Flow):
+        if flow_step.is_var_list:
+            for x,y in enumerate(self.context[flow_step.collection]):
+                self.__set_local(flow_step.var[0],x)
+                self.__set_local(flow_step.var[1],y)
+                self.__do_step(flow_step.steps)
+        else:
+            for x in self.context[flow_step.collection]:
+                self.__set_local(flow_step.var,x)
+                self.__do_step(flow_step.steps)
+            
+    def __flow_while(self,flow_step:Flow):
+        self.__increment_loop_counter(flow_step)
+        while self.__evaluate_flow_conditions(flow_step) is True:
+            self.__do_step(flow_step.steps)      
+            self.__increment_loop_counter(flow_step)            
+            
+    def __flow_do_while(self,flow_step:Flow):      
+        self.__increment_loop_counter(flow_step)
+        self.__do_step(flow_step.steps)
+        self.__flow_while(flow_step)
+                
     def __evaluate_flow_conditions(self,flow_step) -> bool:
         reg = []
         for condition in flow_step.conditions:
@@ -310,18 +336,23 @@ class Engine():
             
         return all(reg)
     
-    def __flow_for_each(self,flow_step):
-        for x in self.context[flow_step.collection]:
-            if type(x) is dict:
-                self.context.locals[flow_step.var] = Ctx(x)
-            else:
-                self.context.locals[flow_step.var] = x
-                
-            self.__do_step(flow_step.steps)
-    
-        self.context.locals.pop(flow_step.var)
+    def __check_var_default_when_none(self,flow_step:Flow,default:str='_'):
+        # used by flows with optional vars
+        if flow_step.var == None:
+            flow_step.var = default
             
-       
+    def __increment_loop_counter(self,flow_step:Flow):
+        if flow_step.var in self.context.locals.keys():
+            self.__set_local(flow_step.var,self.context.locals[flow_step.var] + 1)
+        else:
+            self.__set_local(flow_step.var,0)
+        
+    def __set_local(self,var_name:str,value:any):
+        if type(value) is dict:
+            self.context.locals[var_name] = Ctx(value)
+        else:
+            self.context.locals[var_name] = value       
+        
     def component(
         self,*args: t.Any, **kwargs: t.Any
     ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
@@ -338,16 +369,15 @@ class Engine():
             return cmd
         return decorator
         
-
     
-def init_engine(processJSON):
+def init_engine(processJSON:t.Dict=None):
     """Builds Engine and Context objects.
         Attaches basic context expressions. Add more specific engine components and expressions
         to objects returned from this function.
         
         Steps:
             A step is executed on the the context in order of how it aprear in the the json config document.
-            no member is required but eact step shal supply either a step or expressions block or both.
+            no member is required but each step shall supply either a step or expressions block or both.
             args are allowed and passed to context.args for each step.
             expressions are executed first before execution of step if both are present.
             
@@ -392,7 +422,7 @@ def init_engine(processJSON):
             }
         
         Context Expressions
-            argsAsReff()   - arguments supplied to the the following step are a reffrence to a variable.
+            argsAsReff()   - arguments supplied to the the following step are a reference to a variable.
             newList(name)  - create a new list with name
             newDict(name)  - creates a Ctx dictionary accepts dict_name['thing'] or dict_name.thing
             set(key,value) - expressions do not support assignment this allows creation and setting of context values
@@ -478,7 +508,8 @@ def init_engine(processJSON):
     # Create new engine from context and frame
     engine = Engine(context,frame)
     
-    # set engine steps to process section of json file 
-    engine.steps = processJSON["process"]
+    # set engine steps to process section of json file
+    if processJSON is not None: 
+        engine.steps = processJSON["process"]
          
     return (engine,context)

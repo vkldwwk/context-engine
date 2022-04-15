@@ -252,7 +252,7 @@ require a list of python expressions that must all return true
 </div>
 
 ### **While**
-require a list of python expressions that must all return true
+require a list of python expressions that must all return true. Supports adding a variable for loop counter. if none specified locals._ is used
 ````json
 "conditions":[ 
     "i.type == 'video'"
@@ -265,6 +265,7 @@ require a list of python expressions that must all return true
         "conditions":[
         "i.type == 'video'"
         ],
+        "var": "loop_counter",
         "steps":[
             {
                 "expressions":[
@@ -287,7 +288,7 @@ require a list of python expressions that must all return true
 </div>
 
 ### **Do while**
-require a list of python expressions that must all return true
+require a list of python expressions that must all return true. Supports adding a variable for loop counter. if none specified locals._ is used
 ````json
 "conditions":[ 
     "i.type == 'video'"
@@ -300,6 +301,7 @@ require a list of python expressions that must all return true
         "conditions":[
         "i.type == 'video'"
         ],
+        "var": "loop_counter",
         "steps":[
             {
                 "expressions":[
@@ -371,7 +373,7 @@ The raised exception is stored in locals._ when var is omitted
 </div>
 
 ### **For each**
-requires the name of an iterable collection somewhere on the context and a variable name to store current item. the variable is created by the block at `locals.[variableName]` or `context.locals.[variableName]`
+requires the name of an iterable collection somewhere on the context and a variable name to store current item. the variable is created by the block at `locals.[variableName]` or `context.locals.[variableName]` if the collection is enumerable add a list of variable names.
 
 ````json
     "collection":"default_project_dirs",
@@ -382,7 +384,7 @@ requires the name of an iterable collection somewhere on the context and a varia
     {
         "flow": "for each",
         "collection":"default_project_dirs",
-        "var": "i",
+        "var": ["k","v"],
         "steps":[
             {
                 "expressions":[

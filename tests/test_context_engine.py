@@ -33,24 +33,24 @@ def get_if(conditions:t.List[str]=[],steps:t.List[t.Any]=[],elsesteps:t.List[t.A
         
     }
     
-def get_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[]):    
+def get_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[],var:str=None):    
     return{
         "flow":"while",
         "conditions":conditions,
         "steps":steps,
-        
+        "var":var
     }
     
-def get_do_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[]):    
+def get_do_while(conditions:t.List[str]=[],steps:t.List[t.Any]=[],var:str=None):    
     return{
         "flow":"do while",
         "conditions":conditions,
         "steps":steps,
-        
+        "var":var
     }
     
     
-def get_for_each(collection:str='',var:str='',steps:t.List[t.Any]=[]):    
+def get_for_each(collection:str='',var:t.Union[str,t.List[str]]='',steps:t.List[t.Any]=[]):    
     return{
         "flow":"for each",
         "collection":collection,
@@ -213,6 +213,21 @@ def test_for_each_local_variable():
     engine.run()
     
     assert context.test_0 == True
+    
+def test_for_each_local_two_variables():
+    steps = [ get_expression(["set(f'test_{locals.k}',locals.v)"]) ]
+    fl = get_for_each('test_col',['k','v'],steps)
+    pd = get_process_skeleton([fl])
+    
+    engine, context = init_engine(pd)
+    
+    context.test_col = [ x + 1 for x in range(2)]
+    
+    engine.run()
+    
+    assert context.test_0 == 1
+    assert context.test_1 == 2
+        
     
 def test_for_each_local_variable_multi():
     steps = [ get_expression(["set(f'test_{locals.i}',True)"]) ]
@@ -394,6 +409,41 @@ def test_while_contition_true_steps_run():
     
     assert len(context.outlist) == 3
     
+def test_while_contition_loop_counter_var_not_set():
+    pd = get_process_skeleton([
+         get_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)',
+                              'set(f"loop_count",locals._)'])])
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert context.loop_count ==  2  
+
+def test_while_contition_loop_counter_var_set():
+    pd = get_process_skeleton([
+         get_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)',
+                              'set(f"loop_count",locals.loop_count)'])],"loop_count")
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert context.loop_count ==  2      
     
 def test_while_contition_true_steps_not_run():
     pd = get_process_skeleton([
@@ -449,7 +499,43 @@ def test_do_while_contition_true_steps_run():
     engine.run()
     
     assert len(context.outlist) == 3
+
+def test_do_while_loop_count_var_not_set():
+    pd = get_process_skeleton([
+         get_do_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)',
+                              'set("loop_count",locals._)'])])
+    ])
     
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert context.loop_count == 2
+
+def test_do_while_loop_count_var_not_set():
+    pd = get_process_skeleton([
+         get_do_while(['cond1 == True and not cond2'],
+              [get_expression(['outlist.append("loop")',
+                              'set("cond2",len(outlist) > 2)',
+                              'set("loop_count",locals.test_count)'])],"test_count")
+    ])
+    
+    engine, context = init_engine(pd)
+    
+    context.outlist = []
+    context.cond1 = True
+    context.cond2 = False
+    
+    engine.run()
+    
+    assert context.loop_count == 2   
+   
 def test_do_while_contition_false_steps_run():
     pd = get_process_skeleton([
          get_do_while(['cond1 == True and not cond2'],
@@ -484,7 +570,6 @@ def test_frame_push_flow_step_return_flow():
     frame = Frame()
     
     flow = frame.push_flow(flow)
-    assert len(frame.step_stack) == 0
     assert type(frame.current_flow) is Flow
     
 def test_frame_link_locals_sub_steps():
@@ -634,3 +719,9 @@ def test_frame_link_locals_sub_steps_depth_scope_ref_value():
     assert step5.locals.first_block is not step2.locals.first_block
     assert step2.locals.first_block == True
     assert len(step3.locals.second_block) ==  1
+    
+    
+# def test_thing():
+#     engine, context = init_engine()
+#     f = Frame()
+#     f.
