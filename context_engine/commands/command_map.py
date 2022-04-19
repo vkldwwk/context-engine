@@ -17,6 +17,7 @@ command_map = {
         ("FlowComponent","sys_flows","do_while_logic","do while"),
         ("FlowComponent","sys_flows","foreach_logic","for each"),
         ("FlowComponent","sys_flows","if_logic","if"),
+        ("FlowComponent","sys_flows","while_logic","while"),
         ("FlowComponent","sys_flows","try_logic","try"),
     ]
     
