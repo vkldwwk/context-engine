@@ -4,6 +4,15 @@ import typing as t
 import decorator
 
 
+def get_composite_key_value(dictionary:dict,key:str,value:any=None):
+    next_key = key.split(".",1)
+    
+    if len(next_key) == 2:
+        get_composite_key_value(dictionary[next_key[0]],next_key[1],value)
+    elif value is not None:
+        dictionary[next_key[0]] = value
+    else:
+        return dictionary[next_key[0]]
 
 @decorator.decorator
 def default_var_when_none(f, engine, step,*args,**kwargs):

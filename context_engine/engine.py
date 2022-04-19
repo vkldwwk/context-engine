@@ -1,14 +1,11 @@
 from array import array
-from re import X
+
 from ctx import Ctx
 import typing as t
-from .decorators import FlowComponent, default_var_when_none,Command, Component, Expression
 
 import context_engine.commands.command_map as sys_map
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
-
-
     
 class Step(Ctx):
     """Base class for step and flow ops build on ctx dictionary
@@ -159,7 +156,7 @@ class Context(Ctx):
 
     def expression(
         self,*args: t.Any, **kwargs: t.Any
-    ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
+    ) -> t.Callable[[t.Callable[..., t.Any]], "Command"]:
         """Adds expression to to context. 
            
            expects a function with the first param being type Context
@@ -172,7 +169,7 @@ class Context(Ctx):
         """
         from .decorators import expression
 
-        def decorator(f: t.Callable[..., t.Any]) -> Command:
+        def decorator(f: t.Callable[..., t.Any]) -> "Command":
             cmd = expression(*args, **kwargs)(f)
             self[cmd.name] = cmd
             cmd.set_context(self)
@@ -195,8 +192,8 @@ class Engine():
         self.has_started:bool = False
         self.is_error:bool = False
         self.halt:bool = False
-        self.step_functions: t.Dict[str,Command]= dict()
-        self.flow_functions: t.Dict[str,FlowComponent]=dict()
+        self.step_functions: t.Dict[str,"Command"]= dict()
+        self.flow_functions: t.Dict[str,"FlowComponent"]=dict()
         self.run_once:bool = False
         self.repeat_run:bool = False
         
@@ -272,14 +269,14 @@ class Engine():
         
     def component(
         self,*args: t.Any, **kwargs: t.Any
-    ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
+    ) -> t.Callable[[t.Callable[..., t.Any]], "Command"]:
         """Adds component to engine 
            
            step_name is the name that is referenced in json
         """
         from .decorators import component
 
-        def decorator(f: t.Callable[..., t.Any]) -> Component:
+        def decorator(f: t.Callable[..., t.Any]) -> "Component":
             cmd = component(*args, **kwargs)(f)
             self.step_functions[cmd.name] = cmd
             cmd.set_context(self.context)
@@ -289,14 +286,14 @@ class Engine():
     
     def flow_component(
         self,*args: t.Any, **kwargs: t.Any
-    ) -> t.Callable[[t.Callable[..., t.Any]], Command]:
+    ) -> t.Callable[[t.Callable[..., t.Any]], "Command"]:
         """Adds flow component to engine 
            
            step_name is the name that is referenced in json
         """
         from .decorators import flow_component
 
-        def decorator(f: t.Callable[..., t.Any]) -> Command:
+        def decorator(f: t.Callable[..., t.Any]) -> "Command":
             cmd = flow_component(*args, **kwargs)(f)
             self.flow_functions[cmd.name] = cmd
             cmd.set_engine(self)
