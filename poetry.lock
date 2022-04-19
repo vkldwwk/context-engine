@@ -37,6 +37,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "decorator"
+version = "5.1.1"
+description = "Decorators for Humans"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "flake8"
 version = "4.0.1"
 description = "the modular source code checker: pep8 pyflakes and co"
@@ -155,7 +163,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "eda99b6b33a69d121b854617a02c134dc3a25163616e072e08e2d242c2e704f3"
+content-hash = "06797adabab41012da0e9c305bea9f52bb2685462c62b22010a8fbe2036f1486"
 
 [metadata.files]
 atomicwrites = [
@@ -173,6 +181,10 @@ colorama = [
 ctx = [
     {file = "ctx-0.1.2-py2.py3-none-any.whl", hash = "sha256:beb1628d6624b19c04a065fab6751feace594fd4072b3e649cafdd765182e441"},
     {file = "ctx-0.1.2.tar.gz", hash = "sha256:edbff45647936da3cdadcfeaa64ee9f62b8ad629a5cea8caa4b63f5dc08b99c4"},
+]
+decorator = [
+    {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
+    {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
 flake8 = [
     {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},

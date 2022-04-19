@@ -86,7 +86,7 @@ def test_engine_component_can_set_context():
     engine, context = init_engine(test_process)
     
     @engine.component()
-    def teststep(context):
+    def teststep(engine,context):
         context.test = 'Pass'
         
     engine.run()
@@ -98,7 +98,7 @@ def test_engine_component_can_call_context_expressions():
     engine, context = init_engine(test_process)
     
     @engine.component()
-    def teststep(context):
+    def teststep(engine,context):
         context.set("test","Pass")
         
     engine.run()
@@ -112,7 +112,7 @@ def test_engine_is_finished_when_finished():
     assert engine.is_finished == False
     
     @engine.component()
-    def teststep(context):
+    def teststep(engine,context):
         context.test = 'Pass'
         
     engine.run()
@@ -126,7 +126,7 @@ def test_context_expression_set():
     assert engine.is_finished == False
     
     @engine.component()
-    def teststep(context):
+    def teststep(engine,context):
         context.test = 'Pass'
         
     engine.run()
