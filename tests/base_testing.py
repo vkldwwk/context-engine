@@ -1,4 +1,6 @@
-
+from context_engine import Context,Engine
+from functools import update_wrapper
+import typing as t
 
 def if_single_make_array(f,*args,**kwargs):
     def wrapper(f):
@@ -7,6 +9,8 @@ def if_single_make_array(f,*args,**kwargs):
             return val
         else:
             return [val]
+    update_wrapper(wrapper,f)
+    return wrapper
 
 def get_process_skeleton(steps:t.List[str]=[]):
     return {
@@ -77,5 +81,4 @@ def get_block(steps:t.List[t.Any]=[],expressions:t.List[str]=[]):
         "steps":steps,
         "expressions":expressions
     }
-    
     

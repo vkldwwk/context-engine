@@ -18,7 +18,6 @@ def get_composite_key_value(dictionary:dict,key:str,value:any=None):
 def default_var_when_none(f, engine, step,*args,**kwargs):
     step.var = step.var or '_'
     f(engine,step,*args,**kwargs)
-    
 
 def preprocess_args(fun, varnames):
     """ Applie function to var in varnames before launching the function"""
@@ -37,6 +36,18 @@ def preprocess_args(fun, varnames):
         
         return f(*new_args,**new_kwargs)
     return decorator.decorator(wrapper)
+
+@decorator.decorator
+def push_pop_step(f, engine, step,*args,**kwargs):
+    step.var = step.var or '_'
+    step = engine.frame.push_step(step)
+    f(engine,step,*args,**kwargs)
+    engine.frame.push_step(step)
+    
+# @decorator.decorator
+# def pop_stack_when_complete(f, engine, step,*args,**kwargs):
+#     step.var = step.var or '_'
+#     f(engine,step,*args,**kwargs)
 
 class Command:
     """Callable base class for engine components and context expressions

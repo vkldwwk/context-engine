@@ -2,7 +2,6 @@ from array import array
 
 from ctx import Ctx
 import typing as t
-
 import context_engine.commands.command_map as sys_map
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
@@ -233,8 +232,10 @@ class Engine():
             
     def eval_step_expressions(self,expression_list):
         all(self.context.eval_expression(expression) or True for expression in expression_list)
-            
-
+         
+    def get_flow_function_for_flow(self,flow_step):      
+        return (component for flow, component in self.flow_functions.items() if flow == flow_step.flow)
+    
     def do_flow(self,flow_step):
         """Base processing for flow step blocks.
         """
@@ -244,9 +245,7 @@ class Engine():
         # access to loop variables useful for setting up locals for processing.
         flow_step.expressions and self.eval_step_expressions(flow_step.expressions)
         
-        gen_comp = (component for flow, component in self.flow_functions.items() if flow == flow_step.flow)
-        
-        for flow_logic in gen_comp:
+        for flow_logic in self.get_flow_function_for_flow(flow_step):
             flow_logic(flow_step)
                  
         self.frame.pop_flow()
@@ -305,104 +304,6 @@ def init_engine(processJSON:t.Dict=None):
     """Builds Engine and Context objects.
         Attaches basic context expressions. Add more specific engine components and expressions
         to objects returned from this function.
-        
-        Steps:
-            A step is executed on the the context in order of how it aprear in the the json config document.
-            no member is required but each step shall supply either a step or expressions block or both.
-            args are allowed and passed to context.args for each step.
-            expressions are executed first before execution of step if both are present.
-            
-            Steps are added with the syntax:
-                @engine_instance_name.component(name=optional__name__if_None)
-        {
-            "step": "name of engine component"
-            "expressions":[
-                "list of python/context expressions to execute in order",
-                "next expression"
-            ]
-            "args":"arg value for step"
-        }
-        
-        Flowsteps:
-            a flow step must contain a member flow with one of the following flows.
-                "flow": { "if", "while", "do while", "foreach" }
-                
-                if, while, do while, require a list of python expressions that must all return true
-                "conditions":[ 
-                    "i.type == 'video'"
-                ],
-                
-                if supports an additional
-                "elsesteps":[
-                    a list of steps when false
-                ]
-                
-                for each requires the name of a collection on the context or a python,context expression that returns one
-                var name of var on context to fetch next item into, careful this can colide and is removed from the context
-                on exit of block. but is accessable to all sub steps and expressions until then.
-                
-                "collection":"input",
-                "var": "i",
-                
-                flow steps do not support expressions like steps
-                
-                all flow steps require a 
-                "steps":[
-                    array of steps and/or flow steps to execute.
-                ]
-            }
-        
-        Context Expressions
-            argsAsReff()   - arguments supplied to the the following step are a reference to a variable.
-            newList(name)  - create a new list with name
-            newDict(name)  - creates a Ctx dictionary accepts dict_name['thing'] or dict_name.thing
-            set(key,value) - expressions do not support assignment this allows creation and setting of context values
-                             supports list/dict comprehention as values or most valid python.
-                             
-        Additional context expressions can be added to the returned context with the syntax: 
-            @context_instance_name.expression(name=__name__ when None)
-    
-    Args:
-            processJSON (any): json object representing engine. must cantain a 
-            "process": [ list of steps/flow steps]
-            
-    example:
-    {
-        "process":[
-            {
-                "step":"init",
-                "args":"models/sample.json"
-            },
-            {
-                "expressions":[
-                    "set('default_project_dirs',[])",
-                    "default_project_dirs.append('{project.path}')"
-                ]
-            },
-            {
-                "flow": "for each",
-                "collection":"default_project_dirs",
-                "var": "i",
-                "steps":[
-                    {
-                        "expressions":[
-                            "argsAsReff()"
-                        ],
-                        "step":"create_dir_structure",
-                        "args":"i"
-                    }
-                ]
-            },
-            {
-                "expressions":[
-                    "set('videos', Ctx())"
-                ]
-            }
-        ]
-    }
-    the sample above requires 2 engine components that resolve to init(context:Context) and create_dir_structure(context:Context)
-    Returns:
-    (Engine,Context)    : New Engine and Context ready for initialization
     """
     # create and link frame and context
     frame = Frame()

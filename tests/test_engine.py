@@ -1,7 +1,5 @@
-from context_engine import init_engine
+from context_engine import Frame,Engine
+import tests.base_testing as bs
 
-def test_1():
-    
-    m = init_engine.__dict__
-    
-    assert 1==1
+def test_engine_do_step_expression_calls_eval():
+    pass

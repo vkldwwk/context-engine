@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "context-engine"
-version = "0.1.0"
+version = "0.1.8"
 description = "Simple way to organize processing jobs. generally best when one or more specifications is involved."
 authors = ["vkldwwk <jeff.elliott.dev@gmail.com>"]
 license = "GPL-3.0-or-later"
@@ -21,7 +21,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.9"
 ctx = "^0.1.2"
-decorator = "^5.1.1"
+decorator = "4.0.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
