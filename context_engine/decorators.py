@@ -50,8 +50,10 @@ class Command:
         
 class Component(Command):
     def __init__(self, name: t.Optional[str], command) -> None:
+        self.engine = None
         super().__init__(name, command)
-
+    def set_engine(self,engine):
+        self.engine = engine      
         
 class Expression(Command):
     def __init__(self, name: t.Optional[str], command) -> None:
@@ -60,12 +62,12 @@ class Expression(Command):
     def __call__(self,*args, **kwargs):
         return self.command(self.context,*args,**kwargs)
     
-class FlowComponent(Command):
+class FlowComponent(Component):
     def __init__(self, name: t.Optional[str], command) -> None:
         super().__init__(name, command)
     
     def __call__(self,*args, **kwargs):
-        return self.command(self.context,*args,**kwargs)
+        return self.command(self.engine,*args,**kwargs)
     
 
 
@@ -77,7 +79,7 @@ def expression(
     name: t.Optional[str] = None,
     cls: t.Optional[t.Type[Command]] = None,
     **attrs: t.Any,
-)-> t.Callable[[F], Command]: #-----------------------------------------
+)-> t.Callable[[F], Expression]: #-----------------------------------------
     
     if cls is None:
         cls = Expression
@@ -93,7 +95,7 @@ def component(
     name: t.Optional[str] = None,
     cls: t.Optional[t.Type[Command]] = None,
     *attrs: t.Any,
-)-> t.Callable[[F], Command]: #-----------------------------------------
+)-> t.Callable[[F], Component]: #-----------------------------------------
     
     if cls is None:
         cls = Component
@@ -108,7 +110,7 @@ def flow_component(
     name: t.Optional[str] = None,
     cls: t.Optional[t.Type[Command]] = None,
     *attrs: t.Any,
-)-> t.Callable[[F], Command]: #-----------------------------------------
+)-> t.Callable[[F], FlowComponent]: #-----------------------------------------
     
     if cls is None:
         cls = FlowComponent

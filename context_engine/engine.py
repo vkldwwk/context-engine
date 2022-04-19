@@ -4,6 +4,8 @@ from ctx import Ctx
 import typing as t
 from .decorators import FlowComponent, default_var_when_none,Command, Component, Expression
 
+import context_engine.commands.command_map as sys_map
+
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 
 
@@ -123,6 +125,7 @@ class Context(Ctx):
             frame (Frame): stack frame for engine context.
         """
         self.__frame = frame
+        sys_map.map_command("expressions",self,self)
         super().__init__()
         
     def __get_current_step(self) -> Step:
@@ -196,6 +199,10 @@ class Engine():
         self.flow_functions: t.Dict[str,FlowComponent]=dict()
         self.run_once:bool = False
         self.repeat_run:bool = False
+        
+        sys_map.map_command("flows",self.flow_functions,self.context,self)
+        sys_map.map_command("components",self.step_functions,self.context,self)
+        
     
     def __is_finished__(self):
         return self.frame.step_stack_is_empty and self.has_started
@@ -280,10 +287,11 @@ class Engine():
         """
         from .decorators import component
 
-        def decorator(f: t.Callable[..., t.Any]) -> Command:
+        def decorator(f: t.Callable[..., t.Any]) -> Component:
             cmd = component(*args, **kwargs)(f)
             self.step_functions[cmd.name] = cmd
             cmd.set_context(self.context)
+            cmd.set_engine(self)
             return cmd
         return decorator
     
@@ -299,7 +307,7 @@ class Engine():
         def decorator(f: t.Callable[..., t.Any]) -> Command:
             cmd = flow_component(*args, **kwargs)(f)
             self.flow_functions[cmd.name] = cmd
-            cmd.set_context(self)
+            cmd.set_engine(self)
             return cmd
         return decorator
         
@@ -415,85 +423,9 @@ def init_engine(processJSON:t.Dict=None):
     @context.expression(name='argsAsReff')
     def arg_var(theContext):
         theContext.current_step.args = theContext[theContext.current_step.args]
-    
-    @context.expression(name='newList')
-    def createArray(theContext,name):
-        theContext[name] = []
-    
-    @context.expression(name='newDict')
-    def createDict(theContext,key):
-        theContext[key] = Ctx()
-    
-    @context.expression(name='set')
-    def _set_function(theContext,key:str,value):
-        def walkKey(base_dic:dict,key_parts:str,value):
-            next_keys = key_parts.split(".",1)
-            releng = len(next_keys)
-            if releng == 2 :
-                walkKey(base_dic[next_keys[0]],next_keys[1],value)
-            else:
-                base_dic[next_keys[0]] = value
-                  
-        if '.' in key:
-            walkKey(theContext,key,value)
-        else:
-            theContext[key] = value      
-    
+       
     # Create new engine from context and frame
     engine = Engine(context,frame)
-    
-    @engine.flow_component(name='if')
-    def if_logic(engine:Engine,flow_step:Flow):
-        # engine.evaluate_flow_conditions(flow_step) and engine.do_step(flow_step.steps) or engine.do_step(flow_step.elsesteps)
-        if engine.evaluate_flow_conditions(flow_step) is True:
-            engine.do_step(flow_step.steps)
-        elif flow_step.elsesteps is not None:
-            engine.do_step(flow_step.elsesteps)
-    
-    @engine.flow_component(name='try')
-    @default_var_when_none
-    def try_logic(engine:Engine,flow_step:Flow):
-        try:
-            engine.do_step(flow_step.steps)
-        except Exception as x:
-            engine.context.locals[flow_step.var] = Exception(x)
-                
-            if flow_step.catchsteps is not None:
-                engine.do_step(flow_step.catchsteps)
-                
-            engine.context.locals.pop(flow_step.var)
-    
-    @engine.flow_component(name='for each')
-    def for_logic(engine:Engine,flow_step:Flow):
-        if flow_step.is_var_list:
-            for x,y in enumerate(engine.context[flow_step.collection]):
-                engine.set_local(flow_step.var[0],x)
-                engine.set_local(flow_step.var[1],y)
-                engine.do_step(flow_step.steps)
-        else:
-            for x in engine.context[flow_step.collection]:
-                engine.set_local(flow_step.var,x)
-                engine.do_step(flow_step.steps)
-    
-        
-    @engine.flow_component(name='while')
-    @default_var_when_none
-    def while_logic(engine:Engine,flow_step:Flow):
-        engine.increment_loop_counter(flow_step)
-        while engine.evaluate_flow_conditions(flow_step) is True:
-            engine.do_step(flow_step.steps)      
-            engine.increment_loop_counter(flow_step)   
-                    
-    @engine.flow_component(name='do while')
-    @default_var_when_none
-    def do_logic(engine:Engine,flow_step:Flow):
-        engine.increment_loop_counter(flow_step)
-        engine.do_step(flow_step.steps)
-        while_logic(flow_step)
-
-    @engine.flow_component(name='block')
-    def block_logic(engine:Engine,flow_step:Flow):
-        engine.do_step(flow_step.steps)    
         
                        
     # set engine steps to process section of json file
