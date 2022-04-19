@@ -53,7 +53,9 @@ class Component(Command):
         self.engine = None
         super().__init__(name, command)
     def set_engine(self,engine):
-        self.engine = engine      
+        self.engine = engine  
+    def __call__(self,*args, **kwargs):
+        return self.command(self.engine,self.context,*args,**kwargs)    
         
 class Expression(Command):
     def __init__(self, name: t.Optional[str], command) -> None:

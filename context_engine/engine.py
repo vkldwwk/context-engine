@@ -212,30 +212,31 @@ class Engine():
     def run(self):
         # while not( self.is_finished and self.is_error and self.halt) and len(self.steps) > 0:
         self.has_started = True
-        self.do_step(self.steps)
+        # (  for step in self.steps)
         
-    def do_step(self,list_steps:t.List):
-        for step in list_steps:
-            
-            step = self.frame.push_step(step)
-            
-            # Is flow step?
-            if step.flow is not None:
-                self.do_flow(step)
-            else:
-                # Do we have an expression?
-                if step.expressions is not None:
-                    self.eval_step_expressions(step.expressions)
-                # if step present run engine component code.
-                if step.step is not None:
-                    # test for missing step   
-                    self.step_functions[step.step]()
+        self.do_steps(self.steps)
+        
+    def do_steps(self,list_steps:t.List):
+        all( self.do_step(self.frame.push_step(step)) or True for step in list_steps)
+        
+    def do_step(self,step:Step):
+        # Is flow step?
+        if step.flow is not None:
+            self.do_flow(step)
+        else:
+            # Do we have an expression?
+            if step.expressions is not None:
+                self.eval_step_expressions(step.expressions)
+            # if step present run engine component code.
+            if step.step is not None:
+                # test for missing step   
+                self.step_functions[step.step]()
                 
             self.frame.pop_step()
             
     def eval_step_expressions(self,expression_list):
-        for expression in expression_list:
-            self.context.eval_expression(expression)
+        all(self.context.eval_expression(expression) or True for expression in expression_list)
+            
 
     def do_flow(self,flow_step):
         """Base processing for flow step blocks.
@@ -244,8 +245,7 @@ class Engine():
         
         # Flow step expressions are executed once before flow logic so no
         # access to loop variables useful for setting up locals for processing.
-        if flow_step.expressions is not None:
-            self.eval_step_expressions(flow_step.expressions)
+        flow_step.expressions and self.eval_step_expressions(flow_step.expressions)
         
         gen_comp = (component for flow, component in self.flow_functions.items() if flow == flow_step.flow)
         
@@ -254,17 +254,9 @@ class Engine():
                  
         self.frame.pop_flow()
                 
-    def evaluate_flow_conditions(self,flow_step) -> bool:
-        reg =  ( self.context.eval_expression(condition) for condition in flow_step.conditions)
-        # for condition in flow_step.conditions:
-            # reg.append(self.context.eval_expression(condition))
-            
-        return all(reg)
+    def evaluate_flow_conditions(self,flow_step) -> bool:         
+        return all(( self.context.eval_expression(condition) for condition in flow_step.conditions))
     
-    def __check_var_default_when_none(self,flow_step:Flow,default:str='_'):
-        # used by flows with optional vars
-        if flow_step.var == None:
-            flow_step.var = default
             
     def increment_loop_counter(self,flow_step:Flow):
         if flow_step.var in self.context.locals.keys():
@@ -418,15 +410,9 @@ def init_engine(processJSON:t.Dict=None):
     # create and link frame and context
     frame = Frame()
     context = Context(frame)
-        
-    # adding top level expressions to context. Add more specif ones when you configure context    
-    @context.expression(name='argsAsReff')
-    def arg_var(theContext):
-        theContext.current_step.args = theContext[theContext.current_step.args]
-       
+      
     # Create new engine from context and frame
     engine = Engine(context,frame)
-        
                        
     # set engine steps to process section of json file
     if processJSON is not None: 
